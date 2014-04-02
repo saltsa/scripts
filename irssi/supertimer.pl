@@ -38,47 +38,8 @@ sub load_timers
 
     while($temp_line = readline(*timer_file_handle))
     {
-	if($temp_line =~ /[ ]*\}[ ]*/)
-	{
-	    $level--;
-	}
-	elsif($level == 0)
-	{
-	    if($temp_line =~ /[ ]*([^ \=]+)[ ]*\=[ ]*\{[ ]*\n/)
-	    {
-		$network = $1;
-		$level++;
-		$timer_list{$network} = ();
-	    }
-	}
-	elsif($level == 1)
-	{
-	    if($temp_line =~ /[ ]*([^ \=]+)[ ]*\=[ ]*\{[ ]*\n/)
-	    {
-		$channel = $1;
-		$level++;
-		$timer_list{$network}{$channel} = ();
-	    }
-	}
-	elsif($level == 2)
-	{
-	    if($temp_line =~ /[ ]*([^ \=]+)[ ]*\=[ ]*\{[ ]*\n/)
-	    {
-		$nick = $1;
-		$level++;
-		$timer_list{$network}{$channel}{$nick} = ();
-	    }
-	}
-	elsif($level == 3)
-	{
-	    if($temp_line =~ /[ ]*([0-9]+)\:([0-9]+)\:(.*)\n/)
-	    {
-		if(($2 + 0) > time())
-		{
-		    $timer_list{$network}{$channel}{$nick}{$1} = "$2:$3";
-		}
-	    }
-	}
+    	my @values = split ";", $temp_line;
+    	$timer_list{$values[0]}{$values[1]}{$values[2]}{$values[3]} = $values[4] . ":" . $values[5] if scalar @values == 6;
     }
     close(timer_file_handle);
     sanitize_timers();
@@ -91,25 +52,16 @@ sub save_timers
 
     for my $network ( keys %timer_list )
     {
-	print(timer_file_handle $network . " = {\n");
-
         for my $channel ( keys %{$timer_list{$network}})
         {
-	    print(timer_file_handle " " . $channel . " = {\n");
-
 	    for my $nick ( keys %{$timer_list{$network}{$channel}})
 	    {
-		print(timer_file_handle "  " . $nick . " = {\n");
-
 		foreach(sort(keys(%{$timer_list{$network}{$channel}{$nick}})))
 		{
-		    print(timer_file_handle "   " . $_ . ":" . $timer_list{$network}{$channel}{$nick}{$_} . "\n");
+		    print(timer_file_handle "$network;$channel;$nick;$_\n");
 		}
-		print(timer_file_handle "  }\n");
 	    }
-	    print(timer_file_handle " }\n");
         }
-	print(timer_file_handle "}\n");
     }
     close(timer_file_handle);
 }
